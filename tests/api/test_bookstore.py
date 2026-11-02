@@ -15,10 +15,13 @@ def test_books(session):
     books = r.json()['books']
     assert books and all('isbn' in b and 'title' in b for b in books)
 
-def test_login_empty(session):
-    r = session.post(BASE+'/Account/v1/Login', json={'userName':'','password':''}, timeout=30)
+def test_authorized_empty_credentials(session):
+    # Current Swagger documents Authorized, not the Login URL in the handout.
+    r = session.post(BASE+'/Account/v1/Authorized', json={'userName':'','password':''}, timeout=30)
     assert r.status_code == 400
+    assert r.headers['Content-Type'].startswith('application/json')
     assert r.json()['code'] == '1200'
+    assert r.json()['message'] == 'UserName and Password required.'
 
 def test_user_empty(session):
     r = session.post(BASE+'/Account/v1/User', json={'userName':'','password':''}, timeout=30)

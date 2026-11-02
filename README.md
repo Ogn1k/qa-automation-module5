@@ -44,3 +44,11 @@ Behave: 2 passed, 8 steps passed; results/bdd-final/.
 [Подтвержденный запуск](https://github.com/Ogn1k/qa-automation-module5/actions/runs/41398601765): Unit 22/22, UI 18/18, BDD 2/2; API 4/5.
 Общий статус failure: Login вернул 200 вместо ожидаемого 400.
 Allure HTML сформирован; детали — `CI_RUN_2026-11-02.md`.
+
+## Исправление API и успешный CI
+
+Итоговый [запуск после исправления](https://github.com/Ogn1k/qa-automation-module5/actions/runs/41400186908) завершился success.
+45/45 pytest passed; BDD 2/2.
+Тест авторизации использует документированный `/Account/v1/Authorized` вместо Login из методички.
+Обоснование — `docs/API_FIX.md`; подтверждение — `CI_SUCCESS_2026-11-02.md`.
+Предыдущие сведения о failure выше относятся к истории до исправления.

@@ -1,0 +1,92 @@
+[
+  {
+    "source": "TC-SM-01",
+    "name": "Пять элементов выбора",
+    "test_prefix": "test_tc_sm_01_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-02",
+    "name": "Допустимые одиночные значения",
+    "test_prefix": "test_tc_sm_02_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-03",
+    "name": "Поиск отсутствующего значения",
+    "test_prefix": "test_tc_sm_03_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-04",
+    "name": "Native Blue и Volvo/Audi",
+    "test_prefix": "test_tc_sm_04_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-05",
+    "name": "Пустые множества",
+    "test_prefix": "test_tc_sm_05_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-06",
+    "name": "Один цвет и автомобиль",
+    "test_prefix": "test_tc_sm_06_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-07",
+    "name": "Четыре уникальные опции",
+    "test_prefix": "test_tc_sm_07_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-08",
+    "name": "Совпадение и защита от дубликата",
+    "test_prefix": "test_tc_sm_08_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-09",
+    "name": "Отсутствие совпадения",
+    "test_prefix": "test_tc_sm_09_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-10",
+    "name": "Переходы состояний",
+    "test_prefix": "test_tc_sm_10_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-11",
+    "name": "Недопустимые переходы",
+    "test_prefix": "test_tc_sm_11_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-12",
+    "name": "Попарный набор",
+    "test_prefix": "test_tc_sm_12_",
+    "variants": 4
+  },
+  {
+    "source": "TC-SM-13",
+    "name": "Пользовательский сценарий",
+    "test_prefix": "test_tc_sm_13_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-15",
+    "name": "Повторы и независимость",
+    "test_prefix": "test_tc_sm_15_",
+    "variants": 1
+  },
+  {
+    "source": "TC-SM-16",
+    "name": "Очистка запроса",
+    "test_prefix": "test_tc_sm_16_",
+    "variants": 1
+  }
+]

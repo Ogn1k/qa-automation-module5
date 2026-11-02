@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+results/
+allure-results*/
+allure-report/
+htmlcov/
+coverage.xml
+.env
+.deps/
+.browsers/

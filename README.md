@@ -20,7 +20,7 @@ allure generate allure-results --clean -o allure-report
 Edge: BROWSER_CHANNEL=msedge; Chrome: BROWSER_CHANNEL=chrome; другие движки: BROWSER=firefox (сначала установить).
 По умолчанию Chromium headless, отдельный контекст 1912×966 CSS px, deviceScaleFactor=1.
 При падении UI хук сохраняет PNG и DOM в Allure; отчет Word содержит только пометки и подписи.
-Allure CLI устанавливается отдельно. HTML уже сформирован в allure-report:
+Allure CLI устанавливается отдельно. После генерации или скачивания HTML-артефакта его можно открыть:
 `python -m http.server 8000 --bind 127.0.0.1 --directory allure-report` → http://127.0.0.1:8000.
 Для истории скопировать allure-report/history в новые allure-results/history перед генерацией.
 CI: GitHub Actions, файл `.github/workflows/tests.yml`. Docker/Selenoid не запускались.
@@ -38,3 +38,9 @@ Unit 22/22, API 4/5, UI 18/18; 15 разных исходных TC-SM модул
 Behave: 2 passed, 8 steps passed; results/bdd-final/.
 Итоговый Allure: allure-results-final/ и allure-report/.
 Начальная диагностическая попытка исключена из сдаваемого архива.
+
+## Удаленный CI выполнен 02.11.2026
+
+[Подтвержденный запуск](https://github.com/Ogn1k/qa-automation-module5/actions/runs/41398601765): Unit 22/22, UI 18/18, BDD 2/2; API 4/5.
+Общий статус failure: Login вернул 200 вместо ожидаемого 400.
+Allure HTML сформирован; детали — `CI_RUN_2026-11-02.md`.

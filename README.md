@@ -56,6 +56,9 @@ Linux: `bash selenoid/start.sh`. Контейнер `module5-selenoid`, том `
 `enableVNC` включен; основной диагностический артефакт — видео.
 Сохранение видео ожидается опросом HTTP, а не задержками для взаимодействия с UI.
 После завершения работы: `docker stop module5-selenoid`; повторный запуск: `docker start module5-selenoid`.
+Веб-интерфейс/VNC: `docker pull aerokube/selenoid-ui:1.10.11`, затем
+`.\selenoid\start-ui.ps1` (Linux: `bash selenoid/start-ui.sh`). Адрес — http://127.0.0.1:14446.
+Повторный запуск существующего интерфейса: `docker start module5-selenoid-ui`.
 
 ## История и метрики
 

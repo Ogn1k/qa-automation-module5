@@ -62,4 +62,8 @@ class SeleniumSelectMenuPage:
         assert not self.driver.find_elements(By.CSS_SELECTOR, '[role="option"]')
 
     def native(self, element_id):
-        return Select(self.driver.find_element(By.ID, element_id))
+        element = self.driver.find_element(By.ID, element_id)
+        # A fixed footer can cover native options in Firefox. Scroll the actual
+        # control to the viewport centre; do not change DOM or selected values.
+        self.driver.execute_script('arguments[0].scrollIntoView({block:"center"})', element)
+        return Select(element)

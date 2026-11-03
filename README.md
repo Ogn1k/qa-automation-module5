@@ -66,14 +66,22 @@ Linux: `bash selenoid/start.sh`. Контейнер `module5-selenoid`, том `
 не смешивает сырые результаты разных запусков и переносит только `history`:
 
 ```powershell
-python ci/run_regression.py --runs 3 --allure allure --selenoid-url http://127.0.0.1:14445
-python -m http.server 8000 --bind 127.0.0.1 --directory regression/run-3/allure-report
+java -version
+Invoke-WebRequest https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.34.1/allure-commandline-2.34.1.zip -OutFile allure-cli.zip
+Expand-Archive allure-cli.zip -DestinationPath .tools
+$allureCli = Join-Path $PWD '.tools\allure-2.34.1\bin\allure.bat'
+python ci/run_regression.py --runs 3 --output regression-new --allure $allureCli --selenoid-url http://127.0.0.1:14445
+python -m http.server 8000 --bind 127.0.0.1 --directory regression-new/run-3/allure-report
 ```
 
 Один полный запуск: 74 pytest-исполнения и 2 BDD = 76 результатов Allure.
-Результаты, журналы, покрытие, видео, HTML: `regression/run-N/`.
-`regression/runs.json` сохраняет время, статусы и хеш исходников.
+Для каждого повторного воспроизведения укажите новое имя `--output`: существующие результаты не перезаписываются.
+Результаты, журналы, покрытие, видео, HTML: `<output>/run-N/`.
+`<output>/runs.json` сохраняет время, статусы и хеш исходников.
 Flaky Rate оценивается только по сопоставимым повторам и не гарантирует будущую стабильность.
+В сдаваемом архиве итоговая серия — `regression-release/`; предыдущие серии сохранены отдельно.
+Проверка диагностических вложений: `python ci/check_diagnostics.py --output diagnostics-new`.
+Два намеренных падения этой проверки исключены из продуктовой статистики.
 
 CI: `.github/workflows/tests.yml`, push/PR/manual, отдельные Unit/API/Chromium/Firefox/BDD/Selenoid.
 История берется из последнего артефакта `allure-history` той же ветки и сохраняется снова.

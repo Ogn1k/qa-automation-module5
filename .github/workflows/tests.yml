@@ -7,9 +7,9 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 env:
-  PIP_INDEX_URL: https://pypi.org/simple/
   PYTHONUNBUFFERED: '1'
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [unit, api, ui]
+        suite: [unit, api, ui, firefox]
     steps:
       - name: Checkout project
         uses: actions/checkout@v6
@@ -30,19 +30,27 @@ jobs:
           python-version: '3.14'
           cache: pip
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python ci/install_dependencies.py
       - name: Install Chromium
-        if: matrix.suite == 'ui'
-        run: python -m playwright install --with-deps chromium
+        if: matrix.suite == 'ui' || matrix.suite == 'firefox'
+        run: python -m playwright install --with-deps chromium firefox
       - name: Run Unit tests with coverage
         if: matrix.suite == 'unit'
-        run: python -m pytest tests/unit -v --tb=short --color=no --cov=app --cov-branch --cov-report=json:results/coverage.json --cov-report=html:results/htmlcov --junitxml=results/unit.xml --alluredir=allure-results
+        run: python -m pytest tests/unit -v --tb=short --color=no --cov=app --cov-branch --cov-fail-under=90 --cov-report=json:results/coverage.json --cov-report=html:results/htmlcov --junitxml=results/unit.xml --alluredir=allure-results
+      - name: Enforce C0 and C1 thresholds
+        if: matrix.suite == 'unit'
+        run: python ci/check_coverage.py results/coverage.json
       - name: Run API tests against DemoQA
         if: matrix.suite == 'api'
         run: python -m pytest tests/api -v --tb=short --color=no --junitxml=results/api.xml --alluredir=allure-results
       - name: Run Select Menu UI tests
         if: matrix.suite == 'ui'
         run: python -m pytest tests/ui -v --tb=short --color=no --junitxml=results/ui.xml --alluredir=allure-results
+      - name: Run Firefox UI tests
+        if: matrix.suite == 'firefox'
+        env:
+          BROWSER: firefox
+        run: python -m pytest tests/ui -q --junitxml=results/firefox.xml --alluredir=allure-results
       - name: Write test summary
         if: always()
         run: python ci/summarize.py
@@ -55,7 +63,7 @@ jobs:
             results/
             allure-results/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
 
   bdd:
     name: BDD scenarios
@@ -70,11 +78,11 @@ jobs:
           python-version: '3.14'
           cache: pip
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python ci/install_dependencies.py
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
       - name: Run Behave scenarios
-        run: python -m behave features/select_menu.feature --junit --junit-directory results/bdd --no-capture --no-color
+        run: python -m behave features/select_menu.feature --junit --junit-directory results/bdd -f allure_behave.formatter:AllureFormatter -o allure-results -f pretty --no-color
       - name: Write BDD summary
         if: always()
         run: python ci/summarize.py
@@ -83,23 +91,35 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: reports-bdd
-          path: results/
+          path: |
+            results/
+            allure-results/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
 
   report:
-    name: Allure HTML report
+    name: Allure HTML report with history
     runs-on: ubuntu-24.04
-    needs: [tests, bdd]
+    needs: [tests, bdd, selenoid]
     if: always()
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Restore previous history
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python ci/restore_history.py
       - name: Download pytest reports
         uses: actions/download-artifact@v4
         with:
           pattern: reports-*
           merge-multiple: true
           path: collected
+      - name: Carry history and add build metadata
+        run: python ci/history.py --results collected/allure-results --previous previous-report --build ${{ github.run_number }} --url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
       - name: Generate Allure HTML
         working-directory: collected
         run: |
@@ -107,6 +127,12 @@ jobs:
           curl --fail --location --retry 2 https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.34.1/allure-commandline-2.34.1.zip --output "$RUNNER_TEMP/allure.zip"
           unzip -q "$RUNNER_TEMP/allure.zip" -d "$RUNNER_TEMP/allure-cli"
           bash "$RUNNER_TEMP/allure-cli/allure-2.34.1/bin/allure" generate allure-results --clean -o allure-report
+      - name: Save history for the next run
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: collected/allure-report/history/
+          retention-days: 90
       - name: Save combined report
         if: always()
         uses: actions/upload-artifact@v4
@@ -114,4 +140,61 @@ jobs:
           name: allure-html-report
           path: collected/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
+
+  selenoid:
+    name: Selenoid Chrome and Firefox with video
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: pip
+      - run: python ci/install_dependencies.py
+      - name: Configure Docker mirror
+        run: |
+          sudo python - <<'PYCONFIG'
+          import json
+          from pathlib import Path
+          path = Path('/etc/docker/daemon.json')
+          data = json.loads(path.read_text()) if path.exists() else {}
+          data['registry-mirrors'] = ['https://dh-mirror.gitverse.ru']
+          path.write_text(json.dumps(data))
+          PYCONFIG
+          sudo kill -HUP "$(pidof dockerd)"
+          mkdir -p results
+          docker info --format '{{json .RegistryConfig.Mirrors}}' > results/docker-mirrors.json
+      - name: Pull images
+        run: |
+          docker pull aerokube/selenoid:1.11.3
+          docker pull selenoid/vnc_chrome:128.0
+          docker pull selenoid/vnc_firefox:125.0
+          docker pull selenoid/video-recorder:latest-release
+      - name: Start Selenoid
+        run: |
+          bash selenoid/start.sh
+          for attempt in $(seq 1 30); do
+            if curl --fail http://127.0.0.1:14445/status; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Run cross-browser tests with video
+        env:
+          SELENOID_URL: http://127.0.0.1:14445
+        run: python -m pytest tests/selenoid -m selenoid -q --junitxml=results/selenoid.xml --alluredir=allure-results
+      - name: Save server diagnostics
+        if: always()
+        run: |
+          mkdir -p results
+          docker logs module5-selenoid > results/selenoid-server.log 2>&1 || true
+          docker image ls --digests > results/docker-images.txt
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-selenoid
+          path: |
+            results/
+            allure-results/
+          retention-days: 90

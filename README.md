@@ -1,54 +1,79 @@
-# Модуль 5 — Select Menu, Федорушкин Станислав, ПКТб-23-1
+# Модуль 5 — автоматизация Select Menu
 
-Основание: готовый отчет модуля 4, раздел Widgets → Select Menu.
-UI: 15 уникальных TC-SM (01–13, 15, 16), 18 исполняемых вариантов с четырьмя строками TC-SM-12.
-Unit: собственная модель выбора из псевдокода модуля 4, не код DemoQA.
-API: дополнительный Book Store API DemoQA; у Select Menu публичный серверный API не установлен.
-API и Unit не выдаются за перенос TC-SM; связь UI с первоисточником — traceability.json.
+Федорушкин Станислав, ПКТб-23-1. Объект: https://demoqa.com/select-menu.
+Основание — 15 разных TC-SM модуля 4; `traceability.json` содержит соответствия.
+Unit проверяет собственную учебную модель, API — дополнительный сервис Book Store.
+
+## Установка
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-$env:PIP_CONFIG_FILE = "$PWD\pip.ini"
-python -m pip install -r requirements.txt
-python -m playwright install chromium
-python -m pytest --cov=app --cov-branch --cov-report=json:results/coverage.json --cov-report=html:results/htmlcov --junitxml=results/pytest.xml --alluredir=allure-results
-python -m behave --junit --junit-directory results/bdd
-allure generate allure-results --clean -o allure-report
+python ci/install_dependencies.py
+python -m playwright install chromium firefox
 ```
 
-Edge: BROWSER_CHANNEL=msedge; Chrome: BROWSER_CHANNEL=chrome; другие движки: BROWSER=firefox (сначала установить).
-По умолчанию Chromium headless, отдельный контекст 1912×966 CSS px, deviceScaleFactor=1.
-При падении UI хук сохраняет PNG и DOM в Allure; отчет Word содержит только пометки и подписи.
-Allure CLI устанавливается отдельно. После генерации или скачивания HTML-артефакта его можно открыть:
-`python -m http.server 8000 --bind 127.0.0.1 --directory allure-report` → http://127.0.0.1:8000.
-Для истории скопировать allure-report/history в новые allure-results/history перед генерацией.
-CI: GitHub Actions, файл `.github/workflows/tests.yml`. Docker/Selenoid не запускались.
-Удаленный репозиторий: https://github.com/Ogn1k/qa-automation-module5.
-Отдельные задания запускают Unit, API, UI и Behave; результаты JUnit и Allure
-сохраняются даже при падении проверки. Подробности и снимки для отчета — `CI_GITHUB.md`.
-docker-daemon.example.json — пример настройки зеркала, не доказательство работающего Docker.
-Диагностические/предыдущие результаты Droppable в этот проект и итоговый Allure не включены.
+Установка использует закрепленный `requirements.lock.txt`, сначала зеркало GitVerse,
+при его ошибке — явно указанный PyPI. Журнал: `results/dependency-install.json`.
+`pip.ini` позволяет выбрать зеркало вручную через `PIP_CONFIG_FILE`.
 
-## Подтвержденный прогон 30.10.2026
+## Тесты
 
-45 pytest-вариантов: 44 passed, 1 failed (Login: HTTP 200 вместо ожидаемого 400).
-Unit 22/22, API 4/5, UI 18/18; 15 разных исходных TC-SM модуля 4.
-Полный JUnit: results/pytest-final.xml; окружение: results/environment.json.
-Behave: 2 passed, 8 steps passed; results/bdd-final/.
-Итоговый Allure: allure-results-final/ и allure-report/.
-Начальная диагностическая попытка исключена из сдаваемого архива.
+```powershell
+python -m pytest tests/unit tests/api tests/ui --cov=app --cov-branch --cov-report=json:results/coverage.json --junitxml=results/pytest.xml --alluredir=allure-results
+python ci/check_coverage.py results/coverage.json
+$env:BROWSER = 'firefox'
+python -m pytest tests/ui --junitxml=results/firefox.xml --alluredir=allure-results
+$env:BROWSER = 'chromium'
+python -m behave --junit --junit-directory results/bdd -f allure_behave.formatter:AllureFormatter -o allure-results -f pretty
+```
 
-## Удаленный CI выполнен 02.11.2026
+22 Unit, 6 API (включая создание/токен/авторизацию/чтение/удаление временного пользователя),
+18 UI в Chromium, те же 18 в Firefox, 2 BDD. Повторы разных браузеров учитываются
+как исполнения, а не дополнительные исходные тест-кейсы. API-пользователь удаляется в `finally`.
+Секреты/токены не сохраняются в диагностических вложениях успешного сценария.
 
-[Подтвержденный запуск](https://github.com/Ogn1k/qa-automation-module5/actions/runs/41398601765): Unit 22/22, UI 18/18, BDD 2/2; API 4/5.
-Общий статус failure: Login вернул 200 вместо ожидаемого 400.
-Allure HTML сформирован; детали — `CI_RUN_2026-11-02.md`.
+## Docker и Selenoid
 
-## Исправление API и успешный CI
+В конфигурации Docker Engine требуется `registry-mirrors` из `docker-daemon.example.json`.
+Существующие параметры следует сохранить; фактический результат проверить через
+`docker info --format '{{json .RegistryConfig.Mirrors}}'`.
+В Docker Desktop применяется настройка Docker Engine; перезапуск затрагивает контейнеры.
 
-Итоговый [запуск после исправления](https://github.com/Ogn1k/qa-automation-module5/actions/runs/41400186908) завершился success.
-45/45 pytest passed; BDD 2/2.
-Тест авторизации использует документированный `/Account/v1/Authorized` вместо Login из методички.
-Обоснование — `docs/API_FIX.md`; подтверждение — `CI_SUCCESS_2026-11-02.md`.
-Предыдущие сведения о failure выше относятся к истории до исправления.
+```powershell
+docker pull aerokube/selenoid:1.11.3
+docker pull selenoid/vnc_chrome:128.0
+docker pull selenoid/vnc_firefox:125.0
+docker pull selenoid/video-recorder:latest-release
+.\selenoid\start.ps1
+$env:SELENOID_URL = 'http://127.0.0.1:14445'
+python -m pytest tests/selenoid -m selenoid --junitxml=results/selenoid.xml --alluredir=allure-results
+```
+
+Linux: `bash selenoid/start.sh`. Контейнер `module5-selenoid`, том `module5-video`,
+порт 14445 только на localhost. Docker API version 1.44 обеспечивает совместимость с Docker 29.
+Каждая из 10 WebDriver-проверок (5 × Chrome/Firefox) сохраняет PNG, DOM, метаданные сессии и MP4.
+`enableVNC` включен; основной диагностический артефакт — видео.
+Сохранение видео ожидается опросом HTTP, а не задержками для взаимодействия с UI.
+После завершения работы: `docker stop module5-selenoid`; повторный запуск: `docker start module5-selenoid`.
+
+## История и метрики
+
+Нужен Allure CLI 2.34.1 и Java. Команда выполняет три реальных сопоставимых регресса,
+не смешивает сырые результаты разных запусков и переносит только `history`:
+
+```powershell
+python ci/run_regression.py --runs 3 --allure allure --selenoid-url http://127.0.0.1:14445
+python -m http.server 8000 --bind 127.0.0.1 --directory regression/run-3/allure-report
+```
+
+Один полный запуск: 74 pytest-исполнения и 2 BDD = 76 результатов Allure.
+Результаты, журналы, покрытие, видео, HTML: `regression/run-N/`.
+`regression/runs.json` сохраняет время, статусы и хеш исходников.
+Flaky Rate оценивается только по сопоставимым повторам и не гарантирует будущую стабильность.
+
+CI: `.github/workflows/tests.yml`, push/PR/manual, отдельные Unit/API/Chromium/Firefox/BDD/Selenoid.
+История берется из последнего артефакта `allure-history` той же ветки и сохраняется снова.
+JUnit, диагностика, видео и HTML сохраняются артефактами даже после падения теста.
+Предыдущий CI и локальные результаты от 30.10–02.11.2026 относятся к прошлой версии;
+они не считаются подтверждением расширенного набора. Актуальные подтверждения — в итоговом отчете.

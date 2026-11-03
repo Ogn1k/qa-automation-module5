@@ -16,10 +16,13 @@ def browser():
         b.close()
 
 @pytest.fixture
-def page(browser):
+def page(browser, request):
+    import allure
+    allure.dynamic.parameter('browser', os.getenv('BROWSER', 'chromium'))
     context = browser.new_context(viewport={'width':1912,'height':966}, device_scale_factor=1)
     page = context.new_page()
     page.set_default_timeout(15000)
+    request.node._module5_page = page
     yield page
     context.close()
 
@@ -27,9 +30,17 @@ def page(browser):
 def pytest_runtest_makereport(item, call):
     result = yield
     report = result.get_result()
-    if report.when == 'call' and report.failed and 'page' in item.funcargs:
+    page = item.funcargs.get('page') or getattr(item, '_module5_page', None)
+    if report.when in ('setup', 'call') and report.failed and page is not None:
         import allure
-        page = item.funcargs['page']
-        allure.attach(page.url, 'URL', allure.attachment_type.TEXT)
-        allure.attach(page.screenshot(), 'Failure', allure.attachment_type.PNG)
-        allure.attach(page.content(), 'DOM', allure.attachment_type.HTML)
+        if not page.is_closed():
+            for name, producer, kind in [
+                ('URL', lambda: page.url, allure.attachment_type.TEXT),
+                ('Failure', lambda: page.screenshot(), allure.attachment_type.PNG),
+                ('DOM', lambda: page.content(), allure.attachment_type.HTML),
+            ]:
+                try:
+                    allure.attach(producer(), name, kind)
+                except Exception as error:
+                    # Diagnostics must preserve the original test failure.
+                    allure.attach(str(error), name + ' capture error', allure.attachment_type.TEXT)

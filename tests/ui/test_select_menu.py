@@ -24,10 +24,19 @@ def test_tc_sm_02_single_values(menu):
 
 @allure.story('TC-SM-03')
 def test_tc_sm_03_unknown_value(menu, page):
+    expect(menu.selected_single(2)).to_have_count(0)
     menu.search('zzzz_no_such_option',2)
     menu.no_options()
     menu.input(2).press('Enter')
-    expect(page.locator('#withOptGroup')).not_to_contain_text('option zzzz_no_such_option, selected')
+    expect(menu.selected_single(2)).to_have_count(0)
+    expect(menu.input(2)).to_have_value('zzzz_no_such_option')
+    menu.choose('Group 1, option 1', 2)
+    menu.search('zzzz_no_such_option', 2)
+    menu.no_options()
+    menu.input(2).press('Enter')
+    menu.input(2).fill('')
+    menu.input(2).press('Escape')
+    expect(menu.selected_single(2)).to_have_text('Group 1, option 1')
 
 @allure.story('TC-SM-04')
 def test_tc_sm_04_native_values(menu, page):
@@ -113,9 +122,17 @@ def test_tc_sm_15_repetition_and_independence(menu):
     for _ in range(5): menu.choose('Green');menu.remove('Green')
     menu.choose('Blue');menu.choose('Dr.',3)
     assert menu.chips()==['Blue']
+    expect(menu.selected_single(3)).to_have_text('Dr.')
+    menu.remove('Blue')
+    expect(menu.selected_single(3)).to_have_text('Dr.')
 
 @allure.story('TC-SM-16')
 def test_tc_sm_16_clear_search(menu):
     menu.choose('Green');menu.search('zzzz');menu.no_options()
-    menu.input().fill('');menu.input().press('Escape')
+    menu.clear_search()
+    menu.expect_options(['Blue', 'Black', 'Red'])
+    expect(menu.option('Green')).to_have_count(0)
     assert menu.chips()==['Green']
+    menu.choose('Blue')
+    assert menu.chips()==['Green', 'Blue']
+    menu.input().press('Escape')

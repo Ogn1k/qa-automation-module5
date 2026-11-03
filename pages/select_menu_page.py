@@ -53,3 +53,13 @@ class SelectMenuPage:
     def no_options(self):
         expect(self.page.get_by_text('No options',exact=True)).to_be_visible()
         expect(self.page.locator('[role="option"]')).to_have_count(0)
+
+    def selected_single(self, field):
+        return self.page.locator(self.ROOTS[field]).locator('[class$="-singleValue"]')
+
+    def expect_options(self, values):
+        expect(self.page.locator('[role="option"]')).to_have_text(values)
+
+    def clear_search(self):
+        self.input().fill('')
+        expect(self.input()).to_have_value('')

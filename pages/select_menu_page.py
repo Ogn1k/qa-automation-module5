@@ -11,6 +11,16 @@ class SelectMenuPage:
     def open(self):
         self.page.goto(self.URL, wait_until='domcontentloaded', timeout=60000)
         expect(self.page.locator('#oldSelectMenu')).to_be_visible()
+        # The header logo has no reserved intrinsic height. Its late load can
+        # move a React option between mousedown and mouseup (observed in Firefox).
+        # Wait for this layout dependency, not for unrelated ads/network idle.
+        self.page.wait_for_function('''() => {
+            const image = document.querySelector('header img');
+            if (!image || !image.complete) return false;
+            if (!image.naturalWidth) throw new Error('Select Menu header image failed to load');
+            return true;
+        }''', timeout=15000)
+        expect(self.page.locator('header img')).to_be_visible()
         return self
 
     def input(self, field=4):

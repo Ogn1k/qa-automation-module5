@@ -51,6 +51,11 @@ jobs:
         env:
           BROWSER: firefox
         run: python -m pytest tests/ui -q --junitxml=results/firefox.xml --alluredir=allure-results
+      - name: Verify header layout readiness
+        if: matrix.suite == 'ui' || matrix.suite == 'firefox'
+        env:
+          BROWSER: ${{ matrix.suite == 'firefox' && 'firefox' || 'chromium' }}
+        run: python -m pytest checks/test_page_readiness.py -q --junitxml=results/readiness-${{ matrix.suite }}.xml
       - name: Write test summary
         if: always()
         run: python ci/summarize.py

@@ -22,7 +22,7 @@ root = Path(__file__).resolve().parents[1]
 output = root / args.output
 output.mkdir(parents=True, exist_ok=True)
 source_files = sorted(
-    [p for folder in ['app', 'pages', 'tests', 'features', 'data', 'ci', 'selenoid', '.github']
+    [p for folder in ['app', 'pages', 'tests', 'checks', 'features', 'data', 'ci', 'selenoid', '.github']
      for p in (root / folder).rglob('*')
      if p.is_file() and '__pycache__' not in p.parts]
     + [root / name for name in ['conftest.py', 'pytest.ini', 'requirements.txt', 'requirements.lock.txt']])

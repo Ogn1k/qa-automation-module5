@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import urllib.request
+import urllib.parse
 import zipfile
 
 repository = os.environ['GITHUB_REPOSITORY']
@@ -13,8 +14,23 @@ headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'module5-allur
 base = f'https://api.github.com/repos/{repository}'
 
 
+class ArtifactRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, url):
+        if urllib.parse.urlparse(url).scheme != 'https':
+            raise RuntimeError('Artifact download redirected outside HTTPS')
+        redirected = super().redirect_request(request, response, code, message, headers, url)
+        if urllib.parse.urlparse(request.full_url).netloc != urllib.parse.urlparse(url).netloc:
+            # Artifact storage uses a signed URL. A GitHub Bearer header both
+            # leaks the credential across hosts and overrides its SAS auth.
+            redirected.remove_header('Authorization')
+        return redirected
+
+
+opener = urllib.request.build_opener(ArtifactRedirect())
+
+
 def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=45) as response:
+    with opener.open(urllib.request.Request(url, headers=headers), timeout=45) as response:
         return response.read()
 
 

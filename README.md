@@ -79,7 +79,10 @@ python -m http.server 8000 --bind 127.0.0.1 --directory regression-new/run-3/all
 Результаты, журналы, покрытие, видео, HTML: `<output>/run-N/`.
 `<output>/runs.json` сохраняет время, статусы и хеш исходников.
 Flaky Rate оценивается только по сопоставимым повторам и не гарантирует будущую стабильность.
-В сдаваемом архиве итоговая серия — `regression-release/`; предыдущие серии сохранены отдельно.
+В сдаваемом архиве полный прогон после исправления Green — `regression-green-fix/`;
+`regression-release/` сохраняет три прогона до этого исправления.
+Причина потери клика, trace и проверки до/после: `docs/FLAKY_SM09.md`, `evidence/green-fix-verification.json`.
+Регрессионные проверки медленного/сломанного логотипа: `python -m pytest checks/test_page_readiness.py`.
 Проверка диагностических вложений: `python ci/check_diagnostics.py --output diagnostics-new`.
 Два намеренных падения этой проверки исключены из продуктовой статистики.
 
